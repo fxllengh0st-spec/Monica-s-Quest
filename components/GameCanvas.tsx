@@ -11,16 +11,22 @@ interface Props {
   inputRef: React.MutableRefObject<InputState>;
 }
 
-const MONICA_SPRITE_URL = 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif';
+const SPRITES = {
+  WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
+  JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif'
+};
 
 const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, inputRef }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const spriteRef = useRef<HTMLImageElement | null>(null);
-  const [spriteLoaded, setSpriteLoaded] = useState(false);
+  const walkSpriteRef = useRef<HTMLImageElement | null>(null);
+  const jumpSpriteRef = useRef<HTMLImageElement | null>(null);
+  const [spritesLoaded, setSpritesLoaded] = useState(false);
 
+  // We slightly reduce the Y size for the collision box to 72 (from 80)
+  // to ensure the visual feet "sink" a bit into the ground/grass
   const monicaRef = useRef<Entity>({
     pos: { x: 100, y: 300 },
-    size: { x: 64, y: 80 },
+    size: { x: 64, y: 72 }, 
     vel: { x: 0, y: 0 },
     color: COLORS.MONICA
   });
@@ -34,12 +40,25 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const facingRightRef = useRef<boolean>(true);
 
   useEffect(() => {
-    const img = new Image();
-    img.src = MONICA_SPRITE_URL;
-    img.onload = () => {
-      spriteRef.current = img;
-      setSpriteLoaded(true);
+    let loadedCount = 0;
+    const totalSprites = 2;
+
+    const onImageLoad = () => {
+      loadedCount++;
+      if (loadedCount === totalSprites) {
+        setSpritesLoaded(true);
+      }
     };
+
+    const walkImg = new Image();
+    walkImg.src = SPRITES.WALK;
+    walkImg.onload = onImageLoad;
+    walkSpriteRef.current = walkImg;
+
+    const jumpImg = new Image();
+    jumpImg.src = SPRITES.JUMP;
+    jumpImg.onload = onImageLoad;
+    jumpSpriteRef.current = jumpImg;
   }, []);
 
   useEffect(() => {
@@ -198,17 +217,27 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.fillRect(cebolinhaPos.x + 40, cebolinhaPos.y + jiggle + 10, 8, 20); // ear 1
       ctx.fillRect(cebolinhaPos.x + 55, cebolinhaPos.y + jiggle + 10, 8, 20); // ear 2
 
-      // Monica
-      if (spriteLoaded && spriteRef.current) {
-        ctx.save();
-        if (!facingRightRef.current) {
-          ctx.translate(monica.pos.x + monica.size.x, monica.pos.y);
-          ctx.scale(-1, 1);
-          ctx.drawImage(spriteRef.current, 0, 0, monica.size.x, monica.size.y);
-        } else {
-          ctx.drawImage(spriteRef.current, monica.pos.x, monica.pos.y, monica.size.x, monica.size.y);
+      // Monica Sprite logic
+      if (spritesLoaded) {
+        const currentSprite = isGroundedRef.current ? walkSpriteRef.current : jumpSpriteRef.current;
+        if (currentSprite) {
+          ctx.save();
+          // DRAW_Y_OFFSET: to ensure sprite touches the grass, we draw it 8px taller than its collision box
+          // This "taller" drawing extends below the collision box Y+H.
+          const drawWidth = 64;
+          const drawHeight = 80; // Sprite visual height
+          const drawX = monica.pos.x;
+          const drawY = monica.pos.y - (drawHeight - monica.size.y); // Align bottom of sprite with bottom of collision box
+
+          if (!facingRightRef.current) {
+            ctx.translate(drawX + drawWidth, drawY);
+            ctx.scale(-1, 1);
+            ctx.drawImage(currentSprite, 0, 0, drawWidth, drawHeight);
+          } else {
+            ctx.drawImage(currentSprite, drawX, drawY, drawWidth, drawHeight);
+          }
+          ctx.restore();
         }
-        ctx.restore();
       } else {
         ctx.fillStyle = COLORS.MONICA;
         ctx.fillRect(monica.pos.x, monica.pos.y, monica.size.x, monica.size.y);
@@ -221,7 +250,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
 
     frameRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [onWin, onGameOver, onUpdateMetrics, inputRef, spriteLoaded]);
+  }, [onWin, onGameOver, onUpdateMetrics, inputRef, spritesLoaded]);
 
   return (
     <canvas 
