@@ -22,11 +22,11 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const jumpSpriteRef = useRef<HTMLImageElement | null>(null);
   const [spritesLoaded, setSpritesLoaded] = useState(false);
 
-  // We slightly reduce the Y size for the collision box to 72 (from 80)
-  // to ensure the visual feet "sink" a bit into the ground/grass
+  // Ajuste na altura da caixa de colisão (size.y) para 68 
+  // Isso nos dá mais controle sobre como o sprite de 80px "pousa"
   const monicaRef = useRef<Entity>({
     pos: { x: 100, y: 300 },
-    size: { x: 64, y: 72 }, 
+    size: { x: 64, y: 68 }, 
     vel: { x: 0, y: 0 },
     color: COLORS.MONICA
   });
@@ -110,6 +110,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       if (monica.pos.x < 0) monica.pos.x = 0;
       if (monica.pos.x > SETTINGS.levelLength) monica.pos.x = SETTINGS.levelLength;
 
+      // Resolve colisões e atualiza estado de grounded
       isGroundedRef.current = resolveCollisions(monica, LEVEL_PLATFORMS);
 
       if (inputRef.current.jump && isGroundedRef.current) {
@@ -158,7 +159,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       for (let i = 0; i < 60; i++) {
         const fx = (i * (fenceWidth + 4) - cameraRef.current * 0.8) % (SETTINGS.canvasWidth + 200);
         ctx.fillRect(fx, 340, fenceWidth, 60);
-        // Fence nails
         ctx.fillStyle = '#8b6d51';
         ctx.fillRect(fx + 10, 350, 4, 4);
         ctx.fillRect(fx + 10, 380, 4, 4);
@@ -172,26 +172,18 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       
       // Platforms and Ground
       for (const p of LEVEL_PLATFORMS) {
-        // Ground body
         ctx.fillStyle = COLORS.GROUND;
         ctx.fillRect(p.x, p.y, p.w, p.h);
-        
-        // Grass top
         ctx.fillStyle = COLORS.GRASS;
         ctx.fillRect(p.x, p.y, p.w, 8);
-        
-        // Dirt details
         ctx.fillStyle = '#c7b494';
         for(let dx = 0; dx < p.w; dx += 50) {
             ctx.fillRect(p.x + dx + 10, p.y + 30, 8, 4);
         }
-
-        // The blue patterned border at the very bottom
         if (p.type === 'ground') {
             const borderY = p.y + p.h - 32;
             ctx.fillStyle = COLORS.BORDER_BLUE;
             ctx.fillRect(p.x, borderY, p.w, 32);
-            // Pattern
             ctx.strokeStyle = '#3b82f6';
             ctx.lineWidth = 4;
             for(let bx = 0; bx < p.w; bx += 32) {
@@ -202,32 +194,33 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       }
 
-      // Target: Cebolinha carrying Sansão
+      // Cebolinha
       const jiggle = Math.sin(Date.now() / 150) * 5;
       ctx.fillStyle = COLORS.CEBOLINHA;
       ctx.fillRect(cebolinhaPos.x, cebolinhaPos.y + jiggle, cebolinhaSize.x, cebolinhaSize.y);
-      // Cebolinha's "5 hairs"
       ctx.fillStyle = '#000';
       for(let h = 0; h < 5; h++) {
           ctx.fillRect(cebolinhaPos.x + 10 + (h * 10), cebolinhaPos.y + jiggle - 10, 2, 12);
       }
-      // Sansão in his arms
       ctx.fillStyle = COLORS.SANSAO;
       ctx.fillRect(cebolinhaPos.x + 30, cebolinhaPos.y + jiggle + 30, 40, 30);
-      ctx.fillRect(cebolinhaPos.x + 40, cebolinhaPos.y + jiggle + 10, 8, 20); // ear 1
-      ctx.fillRect(cebolinhaPos.x + 55, cebolinhaPos.y + jiggle + 10, 8, 20); // ear 2
+      ctx.fillRect(cebolinhaPos.x + 40, cebolinhaPos.y + jiggle + 10, 8, 20);
+      ctx.fillRect(cebolinhaPos.x + 55, cebolinhaPos.y + jiggle + 10, 8, 20);
 
       // Monica Sprite logic
       if (spritesLoaded) {
-        const currentSprite = isGroundedRef.current ? walkSpriteRef.current : jumpSpriteRef.current;
+        // Seleção de sprite baseada no estado de ground E velocidade vertical
+        const isJumping = !isGroundedRef.current || monica.vel.y !== 0;
+        const currentSprite = isJumping ? jumpSpriteRef.current : walkSpriteRef.current;
+        
         if (currentSprite) {
           ctx.save();
-          // DRAW_Y_OFFSET: to ensure sprite touches the grass, we draw it 8px taller than its collision box
-          // This "taller" drawing extends below the collision box Y+H.
           const drawWidth = 64;
-          const drawHeight = 80; // Sprite visual height
+          const drawHeight = 80;
           const drawX = monica.pos.x;
-          const drawY = monica.pos.y - (drawHeight - monica.size.y); // Align bottom of sprite with bottom of collision box
+          // Ajuste fino do Y: O sprite de 80px agora "pousa" 4px dentro da grama 
+          // em relação à caixa de colisão de 68px
+          const drawY = monica.pos.y - (drawHeight - monica.size.y) + 4; 
 
           if (!facingRightRef.current) {
             ctx.translate(drawX + drawWidth, drawY);
@@ -244,7 +237,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       }
 
       ctx.restore();
-
       frameRef.current = requestAnimationFrame(gameLoop);
     };
 

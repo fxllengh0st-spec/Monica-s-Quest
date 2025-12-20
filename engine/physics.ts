@@ -13,25 +13,22 @@ export const checkAABB = (a: { pos: Vector2D; size: Vector2D }, b: { pos: Vector
 export const resolveCollisions = (entity: Entity, platforms: Platform[]) => {
   let grounded = false;
 
-  // X axis movement is already applied or about to be
-  // We check for collisions to stop the entity from moving through walls
-  
-  // Y axis collision
   for (const plat of platforms) {
+    // Verificação de colisão AABB
     if (
       entity.pos.x < plat.x + plat.w &&
       entity.pos.x + entity.size.x > plat.x &&
       entity.pos.y + entity.size.y > plat.y &&
       entity.pos.y < plat.y + plat.h
     ) {
-      // Collision detected
-      if (entity.vel.y > 0) {
-        // Falling down
+      // Se estiver caindo ou parado (com gravidade aplicada)
+      if (entity.vel.y >= 0) {
+        // Colisão vindo de cima (pouso)
         entity.pos.y = plat.y - entity.size.y;
         entity.vel.y = 0;
         grounded = true;
       } else if (entity.vel.y < 0) {
-        // Jumping up
+        // Colisão vindo de baixo (bateu a cabeça)
         entity.pos.y = plat.y + plat.h;
         entity.vel.y = 0;
       }

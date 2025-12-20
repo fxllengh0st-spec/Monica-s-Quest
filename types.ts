@@ -6,6 +6,8 @@ export enum GameState {
   GAME_OVER = 'GAME_OVER'
 }
 
+export type GameMode = 'MENU' | 'MARATHON' | 'ADVENTURE';
+
 export interface Vector2D {
   x: number;
   y: number;
