@@ -19,7 +19,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
   const [score, setScore] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   
-  const BG_URL = 'https://static.wikia.nocookie.net/monica/images/2/2e/Rua_do_Limoeiro.png/revision/latest?cb=20190123055608&path-prefix=pt-br';
+  const BG_URL = './assets/bg.webp';
 
   const inputRef = useRef<InputState>({
     left: false,
@@ -74,9 +74,9 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
 
   return (
     <div 
-      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none bg-sky-300"
+      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none"
       style={{ 
-        backgroundImage: `linear-gradient(rgba(135, 206, 235, 0.4), rgba(135, 206, 235, 0.4)), url(${BG_URL})`,
+        backgroundImage: `url(${BG_URL})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

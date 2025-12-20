@@ -15,10 +15,10 @@ interface Props {
 const SPRITES = {
   WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
   JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif',
-  BACKGROUND: 'https://static.wikia.nocookie.net/monica/images/2/2e/Rua_do_Limoeiro.png/revision/latest?cb=20190123055608&path-prefix=pt-br',
-  CEBOLINHA: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQryVapFMy_mxR2Crt6OwgWd0cIxurJThAIFQ&s',
-  CASCAO: 'https://upload.wikimedia.org/wikipedia/pt/3/35/Cascao.png',
-  SANSAO: 'https://upload.wikimedia.org/wikipedia/pt/2/2a/Sans%C3%A3o_%28Mauricio_de_Sousa_Produ%C3%A7%C3%B5es%29.png'
+  BACKGROUND: './assets/bg.webp',
+  CEBOLINHA: './assets/3.gif',
+  CASCAO: './assets/c.webp',
+  SANSAO: './assets/s.png'
 };
 
 const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, inputRef }) => {
@@ -36,7 +36,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const enemiesRef = useRef<EnemyEntity[]>(LEVEL_ENEMIES.map(e => ({
     pos: { x: e.x, y: e.y },
     size: { x: 54, y: 72 }, 
-    vel: { x: 2.5, y: 0 },
+    vel: { x: 2.2, y: 0 },
     color: e.type === 'cebolinha' ? COLORS.CEBOLINHA : COLORS.CASCAO,
     type: e.type,
     startX: e.x,
@@ -73,7 +73,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     const loadImage = (src: string, ref: React.MutableRefObject<HTMLImageElement | null>) => {
       const img = new Image();
       img.src = src;
-      img.crossOrigin = "anonymous";
       ref.current = img;
     };
 
@@ -99,8 +98,10 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     }
   };
 
+  // Funções de desenho procedural para fallback
   const drawProceduralMonica = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, facingRight: boolean, isJumping: boolean) => {
     ctx.save();
+    // Vestido
     ctx.fillStyle = COLORS.MONICA;
     ctx.beginPath();
     ctx.moveTo(x + 10, y + 25);
@@ -108,20 +109,24 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     ctx.lineTo(x + w, y + h);
     ctx.lineTo(x, y + h);
     ctx.fill();
+    // Cabeça
     ctx.fillStyle = '#FFE0BD';
     ctx.beginPath();
     ctx.arc(x + w/2, y + 18, 18, 0, Math.PI * 2);
     ctx.fill();
+    // Cabelo
     ctx.fillStyle = 'black';
     ctx.beginPath();
     ctx.ellipse(x + w/2, y + 15, 20, 15, 0, Math.PI, 0);
     ctx.fill();
+    // Olhos
     ctx.fillStyle = 'black';
     const eyeX = facingRight ? x + w/2 + 5 : x + w/2 - 10;
     ctx.beginPath();
     ctx.arc(eyeX, y + 15, 2.5, 0, Math.PI * 2);
     ctx.arc(eyeX + 8, y + 15, 2.5, 0, Math.PI * 2);
     ctx.fill();
+    // Dentinhos
     ctx.fillStyle = 'white';
     ctx.fillRect(x + w/2 - 3, y + 22, 6, 4);
     ctx.restore();
@@ -131,12 +136,15 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     const { x, y } = { x: enemy.pos.x, y: enemy.pos.y };
     const { x: w, y: h } = enemy.size;
     ctx.save();
+    // Camisa
     ctx.fillStyle = enemy.type === 'cebolinha' ? '#22C55E' : '#FACC15';
     ctx.fillRect(x + 10, y + 25, w - 20, h - 25);
+    // Cabeça
     ctx.fillStyle = '#FFE0BD';
     ctx.beginPath();
     ctx.arc(x + w/2, y + 18, 16, 0, Math.PI * 2);
     ctx.fill();
+    // Cabelo
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 2;
     if (enemy.type === 'cebolinha') {
@@ -158,9 +166,11 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const drawProceduralSansao = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
     ctx.save();
     ctx.fillStyle = '#4FACEF';
+    // Corpo
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, Math.PI * 2);
     ctx.fill();
+    // Orelhas
     ctx.beginPath();
     ctx.ellipse(x - 5, y - 15, 4, 12, -0.2, 0, Math.PI * 2);
     ctx.ellipse(x + 5, y - 15, 4, 12, 0.2, 0, Math.PI * 2);
@@ -270,31 +280,34 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       onUpdateMetrics(Math.floor(monica.pos.x));
 
       // --- RENDERIZAÇÃO ---
-      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
       const bg = backgroundSpriteRef.current;
       if (bg && bg.complete && bg.naturalWidth > 0) {
-        // Para a imagem da Wikia, vamos ajustar a largura para preencher o canvas mantendo a proporção ou repetindo
-        const bgW = SETTINGS.canvasWidth * 1.5; // Ajuste para a imagem específica
-        const bgX = -(cameraRef.current * 0.3) % bgW;
+        const bgW = SETTINGS.canvasWidth;
+        const bgX = -(cameraRef.current * 0.4) % bgW;
         ctx.drawImage(bg, bgX, 0, bgW, SETTINGS.canvasHeight);
         ctx.drawImage(bg, bgX + bgW, 0, bgW, SETTINGS.canvasHeight);
-        if (bgX + bgW < SETTINGS.canvasWidth) {
-           ctx.drawImage(bg, bgX + bgW * 2, 0, bgW, SETTINGS.canvasHeight);
-        }
       } else {
+        // Fallback procedural background
         const gradient = ctx.createLinearGradient(0, 0, 0, SETTINGS.canvasHeight);
         gradient.addColorStop(0, '#87CEEB');
         gradient.addColorStop(1, '#E0F7FA');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
+        
+        // Desenha nuvens simples
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         for(let i=0; i<8; i++) {
           let cx = (i * 400 - (cameraRef.current * 0.2)) % (SETTINGS.levelLength);
           if (cx < -200) cx += SETTINGS.levelLength;
           if (cx < SETTINGS.canvasWidth + 200) {
-            ctx.beginPath(); ctx.arc(cx, 100 + (i%3)*40, 30, 0, Math.PI*2); ctx.arc(cx+30, 100 + (i%3)*40, 40, 0, Math.PI*2); ctx.arc(cx+60, 100 + (i%3)*40, 30, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, 100 + (i%3)*40, 30, 0, Math.PI*2);
+            ctx.arc(cx+30, 100 + (i%3)*40, 40, 0, Math.PI*2);
+            ctx.arc(cx+60, 100 + (i%3)*40, 30, 0, Math.PI*2);
+            ctx.fill();
           }
         }
       }
@@ -302,18 +315,25 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.save();
       ctx.translate(-cameraRef.current, 0);
       
+      // Plataformas
       for (const p of LEVEL_PLATFORMS) {
-        ctx.fillStyle = COLORS.GROUND; ctx.fillRect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = COLORS.GRASS; ctx.fillRect(p.x, p.y, p.w, 14);
+        ctx.fillStyle = COLORS.GROUND;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.fillStyle = COLORS.GRASS;
+        ctx.fillRect(p.x, p.y, p.w, 14);
       }
 
+      // Melancias
       collectiblesRef.current.forEach(c => {
         if (c.isCollected) return;
         const bob = Math.sin(timestamp / 200) * 8;
-        ctx.fillStyle = '#166534'; ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 16, 12, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = COLORS.MELANCIA; ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#166534';
+        ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 16, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COLORS.MELANCIA;
+        ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
       });
 
+      // Inimigos
       enemiesRef.current.forEach(e => {
         if (e.isDead) return;
         const sprite = e.type === 'cebolinha' ? cebolinhaSpriteRef.current : cascaoSpriteRef.current;
@@ -332,6 +352,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
+      // Partículas
       particlesRef.current.forEach((p, index) => {
         p.pos.x += p.vel.x * dt; p.pos.y += p.vel.y * dt;
         p.life -= 0.02 * dt;
@@ -343,6 +364,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
+      // Final: Cebolinha + Sansão
       const jiggle = Math.sin(timestamp / 150) * 5;
       const cebX = cebolinhaVitoriaPos.x;
       const cebY = cebolinhaVitoriaPos.y + jiggle;
@@ -356,11 +378,12 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       
       const s = sansaoSpriteRef.current;
       if (s && s.complete && s.naturalWidth > 0) {
-          ctx.drawImage(s, cebX + 45, cebY + 20, 40, 50);
+          ctx.drawImage(s, cebX + 35, cebY + 20, 50, 60);
       } else {
-          drawProceduralSansao(ctx, cebX + 60, cebY + 45);
+          drawProceduralSansao(ctx, cebX + 45, cebY + 40);
       }
 
+      // Mônica
       const currentSprite = !isGroundedRef.current ? jumpSpriteRef.current : walkSpriteRef.current;
       const dW = 64, dH = 80;
       const dX = monica.pos.x, dY = monica.pos.y - (dH - monica.size.y) + 4; 
