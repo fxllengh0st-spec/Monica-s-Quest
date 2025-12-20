@@ -35,7 +35,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   
   const enemiesRef = useRef<EnemyEntity[]>(LEVEL_ENEMIES.map(e => ({
     pos: { x: e.x, y: e.y },
-    size: { x: 50, y: 70 }, // Tamanho ajustado para sprites
+    size: { x: 54, y: 72 }, 
     vel: { x: 2.2, y: 0 },
     color: e.type === 'cebolinha' ? COLORS.CEBOLINHA : COLORS.CASCAO,
     type: e.type,
@@ -112,7 +112,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const monica = monicaRef.current;
       const isGrounded = isGroundedRef.current;
 
-      // FISICA
       const accel = isGrounded ? SETTINGS.acceleration : SETTINGS.acceleration * 0.5;
       const friction = isGrounded ? SETTINGS.friction : 0.98;
 
@@ -154,7 +153,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#ffffff', 8);
       }
 
-      // INIMIGOS
       enemiesRef.current.forEach(enemy => {
         if (enemy.isDead) return;
         enemy.pos.x += enemy.vel.x * enemy.dir * dt;
@@ -168,13 +166,11 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
             soundManager.current?.enemyDeath();
             createParticles(enemy.pos.x + enemy.size.x / 2, enemy.pos.y, enemy.color, 15);
           } else {
-            soundManager.current?.hit();
             onGameOver();
           }
         }
       });
 
-      // COLETÁVEIS
       collectiblesRef.current.forEach(c => {
         if (c.isCollected) return;
         if (checkAABB(monica, c)) {
@@ -207,12 +203,12 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
-      // Fundo (bg.webp)
-      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete && backgroundSpriteRef.current.naturalWidth > 0) {
+      const bg = backgroundSpriteRef.current;
+      if (bg && bg.complete && bg.naturalWidth > 0) {
         const bgW = SETTINGS.canvasWidth;
         const bgX = -(cameraRef.current * 0.4) % bgW;
-        ctx.drawImage(backgroundSpriteRef.current, bgX, 0, bgW, SETTINGS.canvasHeight);
-        ctx.drawImage(backgroundSpriteRef.current, bgX + bgW, 0, bgW, SETTINGS.canvasHeight);
+        ctx.drawImage(bg, bgX, 0, bgW, SETTINGS.canvasHeight);
+        ctx.drawImage(bg, bgX + bgW, 0, bgW, SETTINGS.canvasHeight);
       }
 
       ctx.save();
@@ -236,11 +232,11 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
       });
 
-      // Inimigos (3.gif e c.webp)
+      // Inimigos (Mesma lógica da Mônica)
       enemiesRef.current.forEach(e => {
         if (e.isDead) return;
         const sprite = e.type === 'cebolinha' ? cebolinhaSpriteRef.current : cascaoSpriteRef.current;
-        if (sprite?.complete && sprite.naturalWidth > 0) {
+        if (sprite && sprite.complete && sprite.naturalWidth > 0) {
           ctx.save();
           if (e.dir > 0) {
             ctx.translate(e.pos.x + e.size.x, e.pos.y);
@@ -265,21 +261,23 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
-      // Final: Cebolinha + Sansão (3.gif + s.png)
+      // Final: Cebolinha + Sansão (Mesma lógica)
       const jiggle = Math.sin(timestamp / 150) * 5;
       const cebX = cebolinhaVitoriaPos.x;
       const cebY = cebolinhaVitoriaPos.y + jiggle;
       
-      if (cebolinhaSpriteRef.current?.complete && cebolinhaSpriteRef.current.naturalWidth > 0) {
-          ctx.drawImage(cebolinhaSpriteRef.current, cebX, cebY, 64, 80);
+      const vitoriaSprite = cebolinhaSpriteRef.current;
+      if (vitoriaSprite && vitoriaSprite.complete && vitoriaSprite.naturalWidth > 0) {
+          ctx.drawImage(vitoriaSprite, cebX, cebY, 64, 80);
       }
-      if (sansaoSpriteRef.current?.complete && sansaoSpriteRef.current.naturalWidth > 0) {
-          ctx.drawImage(sansaoSpriteRef.current, cebX + 35, cebY + 20, 50, 60);
+      const s = sansaoSpriteRef.current;
+      if (s && s.complete && s.naturalWidth > 0) {
+          ctx.drawImage(s, cebX + 35, cebY + 20, 50, 60);
       }
 
       // Mônica
       const currentSprite = !isGroundedRef.current ? jumpSpriteRef.current : walkSpriteRef.current;
-      if (currentSprite?.complete && currentSprite.naturalWidth > 0) {
+      if (currentSprite && currentSprite.complete && currentSprite.naturalWidth > 0) {
         ctx.save();
         const dW = 64, dH = 80;
         const dX = monica.pos.x, dY = monica.pos.y - (dH - monica.size.y) + 4; 
@@ -291,11 +289,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
           ctx.drawImage(currentSprite, dX, dY, dW, dH);
         }
         ctx.restore();
-      } else {
-        // Silhueta simples se o sprite falhar (melhor que quadrado vermelho puro)
-        ctx.fillStyle = COLORS.MONICA;
-        ctx.fillRect(monica.pos.x + 10, monica.pos.y, monica.size.x - 20, monica.size.y);
-        ctx.beginPath(); ctx.arc(monica.pos.x + 32, monica.pos.y - 5, 15, 0, Math.PI * 2); ctx.fill();
       }
 
       ctx.restore();
@@ -306,7 +299,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     return () => cancelAnimationFrame(frameRef.current);
   }, [onWin, onGameOver, onUpdateMetrics, inputRef]);
 
-  return <canvas ref={canvasRef} width={SETTINGS.canvasWidth} height={SETTINGS.canvasHeight} className="w-full h-full block" />;
+  return <canvas ref={canvasRef} width={SETTINGS.canvasWidth} height={SETTINGS.canvasHeight} className="w-full h-full block bg-transparent" />;
 };
 
 export default GameCanvas;

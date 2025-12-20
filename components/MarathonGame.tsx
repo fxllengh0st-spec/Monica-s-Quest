@@ -78,12 +78,15 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
       style={{ 
         backgroundImage: `url(${BG_URL})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/30 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
+      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/20 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
         
-        {gameState === GameState.START && <StartScreen onStart={startGame} />}
+        {gameState === GameState.START && (
+          <StartScreen onStart={startGame} />
+        )}
 
         {gameState === GameState.PLAYING && (
           <div className="relative flex-1 w-full bg-transparent">
@@ -100,8 +103,13 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
           </div>
         )}
 
-        {gameState === GameState.WON && <WinScreen onRestart={startGame} />}
-        {gameState === GameState.GAME_OVER && <GameOverScreen onRestart={startGame} />}
+        {gameState === GameState.WON && (
+          <WinScreen onRestart={startGame} />
+        )}
+
+        {gameState === GameState.GAME_OVER && (
+          <GameOverScreen onRestart={startGame} />
+        )}
       </div>
 
       {!isMobile && (
