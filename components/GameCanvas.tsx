@@ -15,7 +15,10 @@ interface Props {
 const SPRITES = {
   WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
   JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif',
-  BACKGROUND: 'assets/bg.webp'
+  BACKGROUND: 'assets/bg.webp',
+  CEBOLINHA: 'assets/3.gif',
+  CASCAO: 'assets/c.webp',
+  SANSAO: 'assets/s.png'
 };
 
 const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, inputRef }) => {
@@ -23,14 +26,17 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const walkSpriteRef = useRef<HTMLImageElement | null>(null);
   const jumpSpriteRef = useRef<HTMLImageElement | null>(null);
   const backgroundSpriteRef = useRef<HTMLImageElement | null>(null);
+  const cebolinhaSpriteRef = useRef<HTMLImageElement | null>(null);
+  const cascaoSpriteRef = useRef<HTMLImageElement | null>(null);
+  const sansaoSpriteRef = useRef<HTMLImageElement | null>(null);
+  
   const spritesLoadedRef = useRef<boolean>(false);
   const soundManager = useRef<SoundManager | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   
-  // Ref para Inimigos e Coletáveis
   const enemiesRef = useRef<EnemyEntity[]>(LEVEL_ENEMIES.map(e => ({
     pos: { x: e.x, y: e.y },
-    size: { x: 48, y: 60 },
+    size: { x: 48, y: 64 },
     vel: { x: 2, y: 0 },
     color: e.type === 'cebolinha' ? COLORS.CEBOLINHA : COLORS.CASCAO,
     type: e.type,
@@ -66,33 +72,31 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     soundManager.current = new SoundManager();
     
     let loadedCount = 0;
-    const totalSprites = 3;
+    const totalSprites = 6;
     const onImageLoad = () => {
       loadedCount++;
       if (loadedCount === totalSprites) spritesLoadedRef.current = true;
     };
     
     const onImageError = (e: any) => {
+      console.warn("Failed to load sprite:", e.target.src);
       onImageLoad(); 
     };
 
-    const walkImg = new Image();
-    walkImg.onload = onImageLoad;
-    walkImg.onerror = onImageError;
-    walkImg.src = SPRITES.WALK;
-    walkSpriteRef.current = walkImg;
+    const loadImage = (src: string, ref: React.MutableRefObject<HTMLImageElement | null>) => {
+      const img = new Image();
+      img.onload = onImageLoad;
+      img.onerror = onImageError;
+      img.src = src;
+      ref.current = img;
+    };
 
-    const jumpImg = new Image();
-    jumpImg.onload = onImageLoad;
-    jumpImg.onerror = onImageError;
-    jumpImg.src = SPRITES.JUMP;
-    jumpSpriteRef.current = jumpImg;
-
-    const bgImg = new Image();
-    bgImg.onload = onImageLoad;
-    bgImg.onerror = onImageError;
-    bgImg.src = SPRITES.BACKGROUND;
-    backgroundSpriteRef.current = bgImg;
+    loadImage(SPRITES.WALK, walkSpriteRef);
+    loadImage(SPRITES.JUMP, jumpSpriteRef);
+    loadImage(SPRITES.BACKGROUND, backgroundSpriteRef);
+    loadImage(SPRITES.CEBOLINHA, cebolinhaSpriteRef);
+    loadImage(SPRITES.CASCAO, cascaoSpriteRef);
+    loadImage(SPRITES.SANSAO, sansaoSpriteRef);
   }, []);
 
   const createParticles = (x: number, y: number, color: string, count: number) => {
@@ -123,7 +127,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const monica = monicaRef.current;
       const isGrounded = isGroundedRef.current;
 
-      // --- MOVIMENTAÇÃO HORIZONTAL ---
+      // --- FISICA ---
       const accel = isGrounded ? SETTINGS.acceleration : SETTINGS.acceleration * 0.5;
       const friction = isGrounded ? SETTINGS.friction : 0.98;
 
@@ -142,7 +146,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         monica.vel.x = Math.sign(monica.vel.x) * SETTINGS.moveSpeed;
       }
 
-      // --- MOVIMENTAÇÃO VERTICAL ---
       let currentGravity = SETTINGS.gravity;
       if (!inputRef.current.jump && monica.vel.y < 0) {
         currentGravity = SETTINGS.gravity * 2.5; 
@@ -171,32 +174,27 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#ddd', 8);
       }
 
-      // --- ATUALIZAÇÃO INIMIGOS ---
+      // --- INIMIGOS ---
       enemiesRef.current.forEach(enemy => {
         if (enemy.isDead) return;
-
-        // Patrulha
         enemy.pos.x += enemy.vel.x * enemy.dir * dt;
         if (enemy.pos.x > enemy.startX + enemy.patrolRange) enemy.dir = -1;
         if (enemy.pos.x < enemy.startX - enemy.patrolRange) enemy.dir = 1;
 
-        // Colisão Mônica vs Inimigo
         if (checkAABB(monica, enemy)) {
-          // Se cair em cima
           if (monica.vel.y > 0 && monica.pos.y + monica.size.y < enemy.pos.y + enemy.size.y / 2) {
             enemy.isDead = true;
-            monica.vel.y = SETTINGS.jumpForce * 0.7; // Bounce
+            monica.vel.y = SETTINGS.jumpForce * 0.7; 
             soundManager.current?.enemyDeath();
             createParticles(enemy.pos.x + enemy.size.x / 2, enemy.pos.y, enemy.color, 10);
           } else {
-            // Morte da Mônica
             soundManager.current?.hit();
             onGameOver();
           }
         }
       });
 
-      // --- ATUALIZAÇÃO COLETÁVEIS ---
+      // --- COLETÁVEIS ---
       collectiblesRef.current.forEach(c => {
         if (c.isCollected) return;
         if (checkAABB(monica, c)) {
@@ -206,7 +204,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
-      // Game Over / Win
       if (monica.pos.y > SETTINGS.canvasHeight) {
         soundManager.current?.hit();
         onGameOver();
@@ -233,13 +230,16 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
-      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete && backgroundSpriteRef.current.naturalWidth > 0) {
-        ctx.drawImage(backgroundSpriteRef.current, 0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
+      // Parallax Background
+      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete) {
+        const bgWidth = SETTINGS.canvasWidth;
+        const parallaxFactor = 0.5;
+        const bgX = -(cameraRef.current * parallaxFactor) % bgWidth;
+        
+        ctx.drawImage(backgroundSpriteRef.current, bgX, 0, bgWidth, SETTINGS.canvasHeight);
+        ctx.drawImage(backgroundSpriteRef.current, bgX + bgWidth, 0, bgWidth, SETTINGS.canvasHeight);
       } else {
-        const skyGrad = ctx.createLinearGradient(0, 0, 0, SETTINGS.canvasHeight);
-        skyGrad.addColorStop(0, '#87CEEB');
-        skyGrad.addColorStop(1, '#E0F7FA');
-        ctx.fillStyle = skyGrad;
+        ctx.fillStyle = COLORS.SKY;
         ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       }
 
@@ -254,68 +254,78 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = COLORS.GRASS;
         ctx.fillRect(p.x, p.y, p.w, 12);
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.fillRect(p.x, p.y, p.w, 3);
       }
 
       // Melancias
       collectiblesRef.current.forEach(c => {
         if (c.isCollected) return;
-        const bob = Math.sin(timestamp / 200) * 5;
-        // Desenho de Melancia Pixelada
-        ctx.fillStyle = '#166534'; // Casca
-        ctx.fillRect(c.pos.x, c.pos.y + bob, c.size.x, c.size.y);
-        ctx.fillStyle = COLORS.MELANCIA; // Polpa
-        ctx.fillRect(c.pos.x + 4, c.pos.y + 4 + bob, c.size.x - 8, c.size.y - 8);
-        ctx.fillStyle = 'black'; // Sementes
-        ctx.fillRect(c.pos.x + 8, c.pos.y + 8 + bob, 2, 2);
-        ctx.fillRect(c.pos.x + 20, c.pos.y + 12 + bob, 2, 2);
+        const bob = Math.sin(timestamp / 200) * 8;
+        ctx.fillStyle = '#166534';
+        ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 16, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COLORS.MELANCIA;
+        ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'black';
+        ctx.fillRect(c.pos.x + 14, c.pos.y + 14 + bob, 2, 2); ctx.fillRect(c.pos.x + 18, c.pos.y + 17 + bob, 2, 2);
       });
 
       // Inimigos
       enemiesRef.current.forEach(e => {
         if (e.isDead) return;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(e.pos.x, e.pos.y, e.size.x, e.size.y);
-        // Rostinho básico
-        ctx.fillStyle = '#FFE0BD';
-        ctx.fillRect(e.pos.x + 10, e.pos.y + 5, e.size.x - 20, 25);
-        ctx.fillStyle = 'black';
-        const eyeOffset = e.dir > 0 ? 15 : 5;
-        ctx.fillRect(e.pos.x + eyeOffset, e.pos.y + 12, 4, 4);
-        ctx.fillRect(e.pos.x + eyeOffset + 15, e.pos.y + 12, 4, 4);
+        const enemySprite = e.type === 'cebolinha' ? cebolinhaSpriteRef.current : cascaoSpriteRef.current;
+        if (enemySprite?.complete && enemySprite.naturalWidth > 0) {
+            ctx.save();
+            if (e.dir > 0) {
+                ctx.translate(e.pos.x + e.size.x, e.pos.y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(enemySprite, 0, 0, e.size.x, e.size.y);
+            } else {
+                ctx.drawImage(enemySprite, e.pos.x, e.pos.y, e.size.x, e.size.y);
+            }
+            ctx.restore();
+        } else {
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.pos.x, e.pos.y, e.size.x, e.size.y);
+        }
       });
 
       // Partículas
       particlesRef.current.forEach((p, index) => {
-        p.pos.x += p.vel.x * dt;
-        p.pos.y += p.vel.y * dt;
+        p.pos.x += p.vel.x * dt; p.pos.y += p.vel.y * dt;
         p.life -= 0.02 * dt;
         if (p.life <= 0) {
           particlesRef.current.splice(index, 1);
         } else {
-          ctx.globalAlpha = p.life;
-          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
           ctx.fillRect(p.pos.x, p.pos.y, p.size.x, p.size.y);
           ctx.globalAlpha = 1.0;
         }
       });
 
-      // Cebolinha Final
+      // Cebolinha e Sansão (Objetivo Final)
       const jiggle = Math.sin(timestamp / 150) * 5;
       const cebX = cebolinhaVitoriaPos.x;
       const cebY = cebolinhaVitoriaPos.y + jiggle;
-      ctx.fillStyle = COLORS.CEBOLINHA;
-      ctx.fillRect(cebX, cebY, cebolinhaSize.x, cebolinhaSize.y);
-      ctx.fillStyle = COLORS.SANSAO;
-      ctx.fillRect(cebX + 30, cebY + 30, 40, 30);
+      
+      if (cebolinhaSpriteRef.current?.complete) {
+          ctx.drawImage(cebolinhaSpriteRef.current, cebX, cebY, 64, 80);
+      } else {
+          ctx.fillStyle = COLORS.CEBOLINHA;
+          ctx.fillRect(cebX, cebY, cebolinhaSize.x, cebolinhaSize.y);
+      }
+      
+      // Sansão (s.png)
+      if (sansaoSpriteRef.current?.complete) {
+          ctx.drawImage(sansaoSpriteRef.current, cebX + 35, cebY + 20, 50, 60);
+      } else {
+          ctx.fillStyle = COLORS.SANSAO;
+          ctx.fillRect(cebX + 40, cebY + 30, 40, 30);
+      }
 
       // Mônica
       const isJumping = !isGroundedRef.current || Math.abs(monica.vel.y) > 5;
       const currentSprite = isJumping ? jumpSpriteRef.current : walkSpriteRef.current;
-      const spriteExists = currentSprite && currentSprite.complete && currentSprite.naturalWidth > 0;
       
-      if (spriteExists) {
+      if (currentSprite?.complete && currentSprite.naturalWidth > 0) {
         ctx.save();
         const drawWidth = 64;
         const drawHeight = 80;
@@ -348,7 +358,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ref={canvasRef} 
       width={SETTINGS.canvasWidth} 
       height={SETTINGS.canvasHeight}
-      className="w-full h-full border-b-8 border-black shadow-inner block"
+      className="w-full h-full border-b-8 border-black shadow-inner block bg-sky-400"
     />
   );
 };
