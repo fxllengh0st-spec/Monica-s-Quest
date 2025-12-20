@@ -27,6 +27,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
     jump: false
   });
 
+  // Detecção de Mobile
   useEffect(() => {
     const checkMobile = () => {
       const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -38,10 +39,63 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Handlers de Teclado
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== GameState.PLAYING) return;
+      
+      switch (e.code) {
+        case 'ArrowLeft':
+        case 'KeyA':
+          inputRef.current.left = true;
+          break;
+        case 'ArrowRight':
+        case 'KeyD':
+          inputRef.current.right = true;
+          break;
+        case 'ArrowUp':
+        case 'Space':
+        case 'KeyW':
+          inputRef.current.jump = true;
+          // Previne scroll da página com espaço/setas
+          if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+          break;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      switch (e.code) {
+        case 'ArrowLeft':
+        case 'KeyA':
+          inputRef.current.left = false;
+          break;
+        case 'ArrowRight':
+        case 'KeyD':
+          inputRef.current.right = false;
+          break;
+        case 'ArrowUp':
+        case 'Space':
+        case 'KeyW':
+          inputRef.current.jump = false;
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gameState]);
+
   const startGame = useCallback(() => {
     setGameState(GameState.PLAYING);
     setScore(0);
     setDistance(0);
+    // Reseta inputs ao iniciar para evitar estados travados
+    inputRef.current = { left: false, right: false, jump: false };
   }, []);
 
   const handleWin = useCallback(() => {
@@ -93,7 +147,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
 
       {!isMobile && (
         <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
-          <span className="flex items-center gap-1"><Info size={16} /> Use <b>Arrows</b> to Move & <b>Space</b> to Jump. Catch Sansão!</span>
+          <span className="flex items-center gap-1"><Info size={16} /> Use <b>Arrows</b> or <b>WASD</b> to Move & <b>Space</b> to Jump. Catch Sansão!</span>
         </div>
       )}
     </div>
