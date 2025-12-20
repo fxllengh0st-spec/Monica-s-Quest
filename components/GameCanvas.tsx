@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from 'react';
-import { Entity, Vector2D, InputState, Particle } from '../types';
-import { SETTINGS, COLORS, LEVEL_PLATFORMS } from '../constants';
+import { Entity, Vector2D, InputState, Particle, EnemyEntity, CollectibleEntity } from '../types';
+import { SETTINGS, COLORS, LEVEL_PLATFORMS, LEVEL_ENEMIES, LEVEL_COLLECTIBLES } from '../constants';
 import { resolveCollisions, checkAABB } from '../engine/physics';
 import { SoundManager } from '../engine/adventure';
 
@@ -27,6 +27,25 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const soundManager = useRef<SoundManager | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   
+  // Ref para Inimigos e Coletáveis
+  const enemiesRef = useRef<EnemyEntity[]>(LEVEL_ENEMIES.map(e => ({
+    pos: { x: e.x, y: e.y },
+    size: { x: 48, y: 60 },
+    vel: { x: 2, y: 0 },
+    color: e.type === 'cebolinha' ? COLORS.CEBOLINHA : COLORS.CASCAO,
+    type: e.type,
+    startX: e.x,
+    patrolRange: e.patrolRange,
+    dir: 1,
+    isDead: false
+  })));
+
+  const collectiblesRef = useRef<CollectibleEntity[]>(LEVEL_COLLECTIBLES.map(c => ({
+    pos: { x: c.x, y: c.y },
+    size: { x: 32, y: 32 },
+    isCollected: false
+  })));
+  
   const monicaRef = useRef<Entity>({
     pos: { x: 100, y: 300 },
     size: { x: 64, y: 68 }, 
@@ -34,7 +53,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     color: COLORS.MONICA
   });
   
-  const cebolinhaPos: Vector2D = { x: 5800, y: 300 };
+  const cebolinhaVitoriaPos: Vector2D = { x: 5800, y: 300 };
   const cebolinhaSize: Vector2D = { x: 64, y: 80 };
 
   const cameraRef = useRef<number>(0);
@@ -54,7 +73,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     };
     
     const onImageError = (e: any) => {
-      console.warn("Failed to load sprite:", e.target.src);
       onImageLoad(); 
     };
 
@@ -105,9 +123,9 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const monica = monicaRef.current;
       const isGrounded = isGroundedRef.current;
 
-      // --- MOVIMENTAÇÃO HORIZONTAL (ESTILO MARIO) ---
+      // --- MOVIMENTAÇÃO HORIZONTAL ---
       const accel = isGrounded ? SETTINGS.acceleration : SETTINGS.acceleration * 0.5;
-      const friction = isGrounded ? SETTINGS.friction : 0.98; // Menos atrito no ar
+      const friction = isGrounded ? SETTINGS.friction : 0.98;
 
       if (inputRef.current.left) {
         monica.vel.x -= accel * dt;
@@ -116,39 +134,29 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         monica.vel.x += accel * dt;
         facingRightRef.current = true;
       } else {
-        // Aplica atrito quando não há entrada
         monica.vel.x *= Math.pow(friction, dt);
         if (Math.abs(monica.vel.x) < 0.1) monica.vel.x = 0;
       }
 
-      // Limita velocidade máxima horizontal
       if (Math.abs(monica.vel.x) > SETTINGS.moveSpeed) {
         monica.vel.x = Math.sign(monica.vel.x) * SETTINGS.moveSpeed;
       }
 
-      // --- MOVIMENTAÇÃO VERTICAL (ESTILO MARIO) ---
-      // Gravidade Variável: Se soltar o pulo antes do ápice, cai mais rápido
+      // --- MOVIMENTAÇÃO VERTICAL ---
       let currentGravity = SETTINGS.gravity;
       if (!inputRef.current.jump && monica.vel.y < 0) {
-        currentGravity = SETTINGS.gravity * 2.5; // "Freio" de pulo
+        currentGravity = SETTINGS.gravity * 2.5; 
       }
 
       monica.vel.y += currentGravity * dt;
-      
-      // Limita velocidade de queda
-      if (monica.vel.y > SETTINGS.maxFallSpeed) {
-        monica.vel.y = SETTINGS.maxFallSpeed;
-      }
+      if (monica.vel.y > SETTINGS.maxFallSpeed) monica.vel.y = SETTINGS.maxFallSpeed;
 
-      // Aplica Velocidade
       monica.pos.x += monica.vel.x * dt;
       monica.pos.y += monica.vel.y * dt;
 
-      // Limites do Level
       if (monica.pos.x < 0) monica.pos.x = 0;
       if (monica.pos.x > SETTINGS.levelLength) monica.pos.x = SETTINGS.levelLength;
 
-      // Colisões
       const wasGrounded = isGroundedRef.current;
       isGroundedRef.current = resolveCollisions(monica, LEVEL_PLATFORMS);
 
@@ -156,13 +164,47 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#fff', 5);
       }
 
-      // Pulo
       if (inputRef.current.jump && isGroundedRef.current) {
         monica.vel.y = SETTINGS.jumpForce;
         isGroundedRef.current = false;
         soundManager.current?.jump();
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#ddd', 8);
       }
+
+      // --- ATUALIZAÇÃO INIMIGOS ---
+      enemiesRef.current.forEach(enemy => {
+        if (enemy.isDead) return;
+
+        // Patrulha
+        enemy.pos.x += enemy.vel.x * enemy.dir * dt;
+        if (enemy.pos.x > enemy.startX + enemy.patrolRange) enemy.dir = -1;
+        if (enemy.pos.x < enemy.startX - enemy.patrolRange) enemy.dir = 1;
+
+        // Colisão Mônica vs Inimigo
+        if (checkAABB(monica, enemy)) {
+          // Se cair em cima
+          if (monica.vel.y > 0 && monica.pos.y + monica.size.y < enemy.pos.y + enemy.size.y / 2) {
+            enemy.isDead = true;
+            monica.vel.y = SETTINGS.jumpForce * 0.7; // Bounce
+            soundManager.current?.enemyDeath();
+            createParticles(enemy.pos.x + enemy.size.x / 2, enemy.pos.y, enemy.color, 10);
+          } else {
+            // Morte da Mônica
+            soundManager.current?.hit();
+            onGameOver();
+          }
+        }
+      });
+
+      // --- ATUALIZAÇÃO COLETÁVEIS ---
+      collectiblesRef.current.forEach(c => {
+        if (c.isCollected) return;
+        if (checkAABB(monica, c)) {
+          c.isCollected = true;
+          soundManager.current?.coin();
+          createParticles(c.pos.x + c.size.x / 2, c.pos.y + c.size.y / 2, COLORS.MELANCIA, 5);
+        }
+      });
 
       // Game Over / Win
       if (monica.pos.y > SETTINGS.canvasHeight) {
@@ -171,13 +213,12 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         return;
       }
 
-      if (checkAABB(monica, { pos: cebolinhaPos, size: cebolinhaSize })) {
+      if (checkAABB(monica, { pos: cebolinhaVitoriaPos, size: cebolinhaSize })) {
         soundManager.current?.coin();
         onWin();
         return;
       }
 
-      // Câmera Suave (Seguindo a aceleração)
       const targetCamera = monica.pos.x - SETTINGS.canvasWidth / 3;
       cameraRef.current += (targetCamera - cameraRef.current) * 0.08 * dt;
       
@@ -205,7 +246,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.save();
       ctx.translate(-cameraRef.current, 0);
       
-      // Desenha Plataformas
+      // Plataformas
       for (const p of LEVEL_PLATFORMS) {
         ctx.fillStyle = 'rgba(0,0,0,0.1)';
         ctx.fillRect(p.x + 4, p.y + 4, p.w, p.h);
@@ -216,6 +257,34 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
         ctx.fillRect(p.x, p.y, p.w, 3);
       }
+
+      // Melancias
+      collectiblesRef.current.forEach(c => {
+        if (c.isCollected) return;
+        const bob = Math.sin(timestamp / 200) * 5;
+        // Desenho de Melancia Pixelada
+        ctx.fillStyle = '#166534'; // Casca
+        ctx.fillRect(c.pos.x, c.pos.y + bob, c.size.x, c.size.y);
+        ctx.fillStyle = COLORS.MELANCIA; // Polpa
+        ctx.fillRect(c.pos.x + 4, c.pos.y + 4 + bob, c.size.x - 8, c.size.y - 8);
+        ctx.fillStyle = 'black'; // Sementes
+        ctx.fillRect(c.pos.x + 8, c.pos.y + 8 + bob, 2, 2);
+        ctx.fillRect(c.pos.x + 20, c.pos.y + 12 + bob, 2, 2);
+      });
+
+      // Inimigos
+      enemiesRef.current.forEach(e => {
+        if (e.isDead) return;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(e.pos.x, e.pos.y, e.size.x, e.size.y);
+        // Rostinho básico
+        ctx.fillStyle = '#FFE0BD';
+        ctx.fillRect(e.pos.x + 10, e.pos.y + 5, e.size.x - 20, 25);
+        ctx.fillStyle = 'black';
+        const eyeOffset = e.dir > 0 ? 15 : 5;
+        ctx.fillRect(e.pos.x + eyeOffset, e.pos.y + 12, 4, 4);
+        ctx.fillRect(e.pos.x + eyeOffset + 15, e.pos.y + 12, 4, 4);
+      });
 
       // Partículas
       particlesRef.current.forEach((p, index) => {
@@ -232,19 +301,14 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
-      // Cebolinha
+      // Cebolinha Final
       const jiggle = Math.sin(timestamp / 150) * 5;
-      const cebX = cebolinhaPos.x;
-      const cebY = cebolinhaPos.y + jiggle;
+      const cebX = cebolinhaVitoriaPos.x;
+      const cebY = cebolinhaVitoriaPos.y + jiggle;
       ctx.fillStyle = COLORS.CEBOLINHA;
       ctx.fillRect(cebX, cebY, cebolinhaSize.x, cebolinhaSize.y);
-      ctx.fillStyle = 'black';
-      ctx.fillRect(cebX + 10, cebY - 10, 4, 10);
-      ctx.fillRect(cebX + 30, cebY - 10, 4, 10);
       ctx.fillStyle = COLORS.SANSAO;
       ctx.fillRect(cebX + 30, cebY + 30, 40, 30);
-      ctx.fillStyle = 'white';
-      ctx.fillRect(cebX + 35, cebY + 35, 8, 8);
 
       // Mônica
       const isJumping = !isGroundedRef.current || Math.abs(monica.vel.y) > 5;
@@ -269,9 +333,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       } else {
         ctx.fillStyle = COLORS.MONICA;
         ctx.fillRect(monica.pos.x, monica.pos.y, monica.size.x, monica.size.y);
-        ctx.fillStyle = 'white';
-        const eyeX = facingRightRef.current ? monica.pos.x + 40 : monica.pos.x + 10;
-        ctx.fillRect(eyeX, monica.pos.y + 10, 10, 10);
       }
 
       ctx.restore();

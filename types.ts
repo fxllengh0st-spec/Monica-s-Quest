@@ -34,6 +34,20 @@ export interface Platform {
   type: 'ground' | 'platform' | 'obstacle';
 }
 
+export interface EnemyEntity extends Entity {
+  type: 'cebolinha' | 'cascao';
+  startX: number;
+  patrolRange: number;
+  dir: number;
+  isDead: boolean;
+}
+
+export interface CollectibleEntity {
+  pos: Vector2D;
+  size: Vector2D;
+  isCollected: boolean;
+}
+
 export interface InputState {
   left: boolean;
   right: boolean;
