@@ -106,22 +106,23 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
 
   return (
     <div 
-      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none bg-slate-200"
+      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none"
       style={{ 
         backgroundImage: `url(${BG_URL})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        backgroundColor: '#72c6e6' // Fallback seguro
       }}
     >
-      {/* Container Principal do Jogo - O botão de voltar foi removido daqui */}
-      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/50 bg-sky-200 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
+      {/* Container Principal do Jogo */}
+      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/50 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
         
         {gameState === GameState.START && (
           <StartScreen onStart={startGame} />
         )}
 
         {gameState === GameState.PLAYING && (
-          <div className="relative flex-1 w-full bg-sky-300">
+          <div className="relative flex-1 w-full bg-transparent">
             <HUD distance={distance} score={score} isMobile={isMobile} />
             <div className="w-full h-full relative">
                <GameCanvas 

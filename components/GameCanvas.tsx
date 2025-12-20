@@ -228,19 +228,17 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
 
       // --- RENDERIZAÇÃO ---
       ctx.imageSmoothingEnabled = false;
+      // Limpa com transparência para ver o fundo do container
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
-      // Parallax Background
-      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete) {
+      // Parallax Background no Canvas (Apenas se carregado)
+      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete && backgroundSpriteRef.current.naturalWidth > 0) {
         const bgWidth = SETTINGS.canvasWidth;
         const parallaxFactor = 0.5;
         const bgX = -(cameraRef.current * parallaxFactor) % bgWidth;
         
         ctx.drawImage(backgroundSpriteRef.current, bgX, 0, bgWidth, SETTINGS.canvasHeight);
         ctx.drawImage(backgroundSpriteRef.current, bgX + bgWidth, 0, bgWidth, SETTINGS.canvasHeight);
-      } else {
-        ctx.fillStyle = COLORS.SKY;
-        ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       }
 
       ctx.save();
@@ -306,7 +304,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const cebX = cebolinhaVitoriaPos.x;
       const cebY = cebolinhaVitoriaPos.y + jiggle;
       
-      if (cebolinhaSpriteRef.current?.complete) {
+      if (cebolinhaSpriteRef.current?.complete && cebolinhaSpriteRef.current.naturalWidth > 0) {
           ctx.drawImage(cebolinhaSpriteRef.current, cebX, cebY, 64, 80);
       } else {
           ctx.fillStyle = COLORS.CEBOLINHA;
@@ -314,7 +312,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       }
       
       // Sansão (s.png)
-      if (sansaoSpriteRef.current?.complete) {
+      if (sansaoSpriteRef.current?.complete && sansaoSpriteRef.current.naturalWidth > 0) {
           ctx.drawImage(sansaoSpriteRef.current, cebX + 35, cebY + 20, 50, 60);
       } else {
           ctx.fillStyle = COLORS.SANSAO;
@@ -358,7 +356,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ref={canvasRef} 
       width={SETTINGS.canvasWidth} 
       height={SETTINGS.canvasHeight}
-      className="w-full h-full border-b-8 border-black shadow-inner block bg-sky-400"
+      className="w-full h-full border-b-8 border-black shadow-inner block"
     />
   );
 };
