@@ -52,20 +52,29 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       loadedCount++;
       if (loadedCount === totalSprites) spritesLoadedRef.current = true;
     };
+    
+    const onImageError = (e: any) => {
+      console.warn("Failed to load sprite:", e.target.src);
+      // Still count as "processed" to avoid blocking logic if one fails
+      onImageLoad(); 
+    };
 
     const walkImg = new Image();
-    walkImg.src = SPRITES.WALK;
     walkImg.onload = onImageLoad;
+    walkImg.onerror = onImageError;
+    walkImg.src = SPRITES.WALK;
     walkSpriteRef.current = walkImg;
 
     const jumpImg = new Image();
-    jumpImg.src = SPRITES.JUMP;
     jumpImg.onload = onImageLoad;
+    jumpImg.onerror = onImageError;
+    jumpImg.src = SPRITES.JUMP;
     jumpSpriteRef.current = jumpImg;
 
     const bgImg = new Image();
-    bgImg.src = SPRITES.BACKGROUND;
     bgImg.onload = onImageLoad;
+    bgImg.onerror = onImageError;
+    bgImg.src = SPRITES.BACKGROUND;
     backgroundSpriteRef.current = bgImg;
   }, []);
 
@@ -91,7 +100,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
 
     const gameLoop = (timestamp: number) => {
       if (!lastTimeRef.current) lastTimeRef.current = timestamp;
-      const dt = Math.min((timestamp - lastTimeRef.current) / 16.67, 2); // Normalize to 60fps
+      const dt = Math.min((timestamp - lastTimeRef.current) / 16.67, 2); 
       lastTimeRef.current = timestamp;
 
       const monica = monicaRef.current;
@@ -119,12 +128,10 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const wasGrounded = isGroundedRef.current;
       isGroundedRef.current = resolveCollisions(monica, LEVEL_PLATFORMS);
 
-      // Efeito de aterrissagem
       if (!wasGrounded && isGroundedRef.current) {
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#fff', 5);
       }
 
-      // Pulo
       if (inputRef.current.jump && isGroundedRef.current) {
         monica.vel.y = SETTINGS.jumpForce;
         isGroundedRef.current = false;
@@ -132,21 +139,18 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         createParticles(monica.pos.x + monica.size.x / 2, monica.pos.y + monica.size.y, '#ddd', 8);
       }
 
-      // Falecimento
       if (monica.pos.y > SETTINGS.canvasHeight) {
         soundManager.current?.hit();
         onGameOver();
         return;
       }
 
-      // Vitória
       if (checkAABB(monica, { pos: cebolinhaPos, size: cebolinhaSize })) {
         soundManager.current?.coin();
         onWin();
         return;
       }
 
-      // Câmera Suave
       const targetCamera = monica.pos.x - SETTINGS.canvasWidth / 3;
       cameraRef.current += (targetCamera - cameraRef.current) * 0.1 * dt;
       
@@ -161,24 +165,37 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
-      // Imagem de Fundo (Static)
-      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete) {
+      // Desenha fundo - prioriza imagem se carregada, senão usa um degradê céu
+      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete && backgroundSpriteRef.current.naturalWidth > 0) {
         ctx.drawImage(backgroundSpriteRef.current, 0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       } else {
-        // Fallback Sky
-        ctx.fillStyle = COLORS.SKY;
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, SETTINGS.canvasHeight);
+        skyGrad.addColorStop(0, '#87CEEB'); // Sky Blue
+        skyGrad.addColorStop(1, '#E0F7FA'); // Light Cyan
+        ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       }
 
       ctx.save();
       ctx.translate(-cameraRef.current, 0);
       
-      // Level
+      // Desenha Plataformas
       for (const p of LEVEL_PLATFORMS) {
+        // Sombra da plataforma
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        ctx.fillRect(p.x + 4, p.y + 4, p.w, p.h);
+
+        // Corpo da plataforma
         ctx.fillStyle = COLORS.GROUND;
         ctx.fillRect(p.x, p.y, p.w, p.h);
+
+        // Topo de grama
         ctx.fillStyle = COLORS.GRASS;
-        ctx.fillRect(p.x, p.y, p.w, 8);
+        ctx.fillRect(p.x, p.y, p.w, 12);
+        
+        // Detalhe na grama
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(p.x, p.y, p.w, 3);
       }
 
       // Partículas
@@ -196,36 +213,51 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
-      // Cebolinha
+      // Cebolinha (Renderização mais robusta)
       const jiggle = Math.sin(timestamp / 150) * 5;
+      const cebX = cebolinhaPos.x;
+      const cebY = cebolinhaPos.y + jiggle;
+      
+      // Fallback visual para o Cebolinha
       ctx.fillStyle = COLORS.CEBOLINHA;
-      ctx.fillRect(cebolinhaPos.x, cebolinhaPos.y + jiggle, cebolinhaSize.x, cebolinhaSize.y);
+      ctx.fillRect(cebX, cebY, cebolinhaSize.x, cebolinhaSize.y);
+      ctx.fillStyle = 'black'; // Cabelo (esquemático)
+      ctx.fillRect(cebX + 10, cebY - 10, 4, 10);
+      ctx.fillRect(cebX + 30, cebY - 10, 4, 10);
       
       // Sansão
       ctx.fillStyle = COLORS.SANSAO;
-      ctx.fillRect(cebolinhaPos.x + 30, cebolinhaPos.y + jiggle + 30, 40, 30);
+      ctx.fillRect(cebX + 30, cebY + 30, 40, 30);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(cebX + 35, cebY + 35, 8, 8); // Olhinhos do Sansão
 
-      // Monica
-      if (spritesLoadedRef.current) {
-        const isJumping = !isGroundedRef.current || Math.abs(monica.vel.y) > 5;
-        const currentSprite = isJumping ? jumpSpriteRef.current : walkSpriteRef.current;
-        
-        if (currentSprite) {
-          ctx.save();
-          const drawWidth = 64;
-          const drawHeight = 80;
-          const drawX = monica.pos.x;
-          const drawY = monica.pos.y - (drawHeight - monica.size.y) + 4; 
+      // Mônica
+      const isJumping = !isGroundedRef.current || Math.abs(monica.vel.y) > 5;
+      const currentSprite = isJumping ? jumpSpriteRef.current : walkSpriteRef.current;
+      const spriteExists = currentSprite && currentSprite.complete && currentSprite.naturalWidth > 0;
+      
+      if (spriteExists) {
+        ctx.save();
+        const drawWidth = 64;
+        const drawHeight = 80;
+        const drawX = monica.pos.x;
+        const drawY = monica.pos.y - (drawHeight - monica.size.y) + 4; 
 
-          if (!facingRightRef.current) {
-            ctx.translate(drawX + drawWidth, drawY);
-            ctx.scale(-1, 1);
-            ctx.drawImage(currentSprite, 0, 0, drawWidth, drawHeight);
-          } else {
-            ctx.drawImage(currentSprite, drawX, drawY, drawWidth, drawHeight);
-          }
-          ctx.restore();
+        if (!facingRightRef.current) {
+          ctx.translate(drawX + drawWidth, drawY);
+          ctx.scale(-1, 1);
+          ctx.drawImage(currentSprite, 0, 0, drawWidth, drawHeight);
+        } else {
+          ctx.drawImage(currentSprite, drawX, drawY, drawWidth, drawHeight);
         }
+        ctx.restore();
+      } else {
+        // Fallback robusto para a Mônica se o GIF falhar
+        ctx.fillStyle = COLORS.MONICA;
+        ctx.fillRect(monica.pos.x, monica.pos.y, monica.size.x, monica.size.y);
+        ctx.fillStyle = 'white';
+        const eyeX = facingRightRef.current ? monica.pos.x + 40 : monica.pos.x + 10;
+        ctx.fillRect(eyeX, monica.pos.y + 10, 10, 10); // Olho
       }
 
       ctx.restore();
@@ -241,7 +273,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ref={canvasRef} 
       width={SETTINGS.canvasWidth} 
       height={SETTINGS.canvasHeight}
-      className="w-full h-full border-b-8 border-black shadow-inner"
+      className="w-full h-full border-b-8 border-black shadow-inner block"
     />
   );
 };

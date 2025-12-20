@@ -108,30 +108,36 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
 
   return (
     <div 
-      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none bg-cover bg-center"
-      style={{ backgroundImage: `url(${BG_URL})` }}
+      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none bg-slate-200"
+      style={{ 
+        backgroundImage: `url(${BG_URL})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
     >
-      {/* Overlay para legibilidade e profundidade */}
-      <div className="absolute inset-0 bg-blue-900/10 pointer-events-none"></div>
-
-      <button onClick={onExit} className="absolute top-4 left-4 z-50 bg-black/40 p-2 rounded-full hover:bg-black/60 text-white backdrop-blur-sm">
+      {/* Botão Sair */}
+      <button onClick={onExit} className="absolute top-4 left-4 z-50 bg-black/40 p-2 rounded-full hover:bg-black/60 text-white backdrop-blur-sm transition-colors">
         <ArrowLeft size={24} />
       </button>
 
-      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/30 bg-black/20 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
+      {/* Container Principal do Jogo */}
+      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/50 bg-sky-200 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
+        
         {gameState === GameState.START && (
           <StartScreen onStart={startGame} />
         )}
 
         {gameState === GameState.PLAYING && (
-          <div className="relative flex-1 w-full">
+          <div className="relative flex-1 w-full bg-sky-300">
             <HUD distance={distance} score={score} isMobile={isMobile} />
-            <GameCanvas 
-              onWin={handleWin} 
-              onGameOver={handleGameOver} 
-              onUpdateMetrics={(d) => setDistance(d)}
-              inputRef={inputRef}
-            />
+            <div className="w-full h-full relative">
+               <GameCanvas 
+                 onWin={handleWin} 
+                 onGameOver={handleGameOver} 
+                 onUpdateMetrics={(d) => setDistance(d)}
+                 inputRef={inputRef}
+               />
+            </div>
             {isMobile && <MobileControls inputRef={inputRef} />}
           </div>
         )}
@@ -145,9 +151,13 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
         )}
       </div>
 
+      {/* Dicas de Controle */}
       {!isMobile && (
-        <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
-          <span className="flex items-center gap-1"><Info size={16} /> Use <b>Arrows</b> or <b>WASD</b> to Move & <b>Space</b> to Jump. Catch Sansão!</span>
+        <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm">
+          <span className="flex items-center gap-1">
+            <Info size={16} /> 
+            Use <b>Setas</b> ou <b>WASD</b> para mover e <b>Espaço</b> para pular. Pegue o Sansão!
+          </span>
         </div>
       )}
     </div>
