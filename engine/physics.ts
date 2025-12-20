@@ -14,23 +14,28 @@ export const resolveCollisions = (entity: Entity, platforms: Platform[]) => {
   let grounded = false;
 
   for (const plat of platforms) {
-    // Verificação de colisão AABB
-    if (
-      entity.pos.x < plat.x + plat.w &&
-      entity.pos.x + entity.size.x > plat.x &&
-      entity.pos.y + entity.size.y > plat.y &&
-      entity.pos.y < plat.y + plat.h
-    ) {
-      // Se estiver caindo ou parado (com gravidade aplicada)
-      if (entity.vel.y >= 0) {
-        // Colisão vindo de cima (pouso)
-        entity.pos.y = plat.y - entity.size.y;
-        entity.vel.y = 0;
-        grounded = true;
-      } else if (entity.vel.y < 0) {
-        // Colisão vindo de baixo (bateu a cabeça)
-        entity.pos.y = plat.y + plat.h;
-        entity.vel.y = 0;
+    // Check for overlap
+    const overlapX = Math.min(entity.pos.x + entity.size.x, plat.x + plat.w) - Math.max(entity.pos.x, plat.x);
+    const overlapY = Math.min(entity.pos.y + entity.size.y, plat.y + plat.h) - Math.max(entity.pos.y, plat.y);
+
+    if (overlapX > 0 && overlapY > 0) {
+      // Resolve on the axis with the smallest overlap
+      if (overlapX < overlapY) {
+        if (entity.pos.x + entity.size.x / 2 < plat.x + plat.w / 2) {
+          entity.pos.x -= overlapX;
+        } else {
+          entity.pos.x += overlapX;
+        }
+        entity.vel.x = 0;
+      } else {
+        if (entity.pos.y + entity.size.y / 2 < plat.y + plat.h / 2) {
+          entity.pos.y -= overlapY;
+          entity.vel.y = 0;
+          grounded = true;
+        } else {
+          entity.pos.y += overlapY;
+          entity.vel.y = 0;
+        }
       }
     }
   }

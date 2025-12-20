@@ -8,18 +8,26 @@ export class SoundManager {
     this.enabled = true;
   }
 
+  async resume() {
+    if (this.ctx.state === 'suspended') {
+      await this.ctx.resume();
+    }
+  }
+
   playTone(freq: number, type: OscillatorType, duration: number, vol = 0.1) {
-    if (!this.enabled || this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + duration);
+    if (!this.enabled) return;
+    this.resume().then(() => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+      gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+    }).catch(console.error);
   }
 
   jump() { this.playTone(400, 'sine', 0.3); }
@@ -31,6 +39,9 @@ export class SoundManager {
 
 export class InputHandler {
   keys: { left: boolean; right: boolean; up: boolean; attack: boolean };
+  
+  private onKeyDown = (e: KeyboardEvent) => this.handleKey(e, true);
+  private onKeyUp = (e: KeyboardEvent) => this.handleKey(e, false);
 
   constructor() {
     this.keys = { left: false, right: false, up: false, attack: false };
@@ -38,15 +49,13 @@ export class InputHandler {
   }
 
   bindKeyboard() {
-    window.addEventListener('keydown', e => this.handleKey(e, true));
-    window.addEventListener('keyup', e => this.handleKey(e, false));
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
   }
 
   unbind() {
-    window.removeEventListener('keydown', this.handleKey as any); // Typescript limitation workaround or use bound function
-    // For simplicity in this port, we might leak listeners if not careful, 
-    // but we'll assign the bound function to a variable if needed. 
-    // Here we just accept simple event listeners for now.
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
   }
 
   handleKey(e: KeyboardEvent, isDown: boolean) {
@@ -462,13 +471,14 @@ export class AdventureEngine {
     start() {
         this.initLevel();
         this.isRunning = true;
+        this.audio.resume();
         this.loop();
     }
 
     stop() {
         this.isRunning = false;
         cancelAnimationFrame(this.animationFrameId);
-        // this.input.unbind(); // If we implemented unbind
+        this.input.unbind();
     }
 
     loseLife() {

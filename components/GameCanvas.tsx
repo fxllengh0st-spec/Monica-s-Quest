@@ -20,10 +20,9 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const walkSpriteRef = useRef<HTMLImageElement | null>(null);
   const jumpSpriteRef = useRef<HTMLImageElement | null>(null);
-  const [spritesLoaded, setSpritesLoaded] = useState(false);
+  const spritesLoadedRef = useRef<boolean>(false);
 
   // Ajuste na altura da caixa de colisão (size.y) para 68 
-  // Isso nos dá mais controle sobre como o sprite de 80px "pousa"
   const monicaRef = useRef<Entity>({
     pos: { x: 100, y: 300 },
     size: { x: 64, y: 68 }, 
@@ -39,6 +38,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
   const isGroundedRef = useRef<boolean>(false);
   const facingRightRef = useRef<boolean>(true);
 
+  // Separate image loading from the game loop effect
   useEffect(() => {
     let loadedCount = 0;
     const totalSprites = 2;
@@ -46,7 +46,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     const onImageLoad = () => {
       loadedCount++;
       if (loadedCount === totalSprites) {
-        setSpritesLoaded(true);
+        spritesLoadedRef.current = true;
       }
     };
 
@@ -110,7 +110,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       if (monica.pos.x < 0) monica.pos.x = 0;
       if (monica.pos.x > SETTINGS.levelLength) monica.pos.x = SETTINGS.levelLength;
 
-      // Resolve colisões e atualiza estado de grounded
       isGroundedRef.current = resolveCollisions(monica, LEVEL_PLATFORMS);
 
       if (inputRef.current.jump && isGroundedRef.current) {
@@ -208,8 +207,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.fillRect(cebolinhaPos.x + 55, cebolinhaPos.y + jiggle + 10, 8, 20);
 
       // Monica Sprite logic
-      if (spritesLoaded) {
-        // Seleção de sprite baseada no estado de ground E velocidade vertical
+      if (spritesLoadedRef.current) {
         const isJumping = !isGroundedRef.current || monica.vel.y !== 0;
         const currentSprite = isJumping ? jumpSpriteRef.current : walkSpriteRef.current;
         
@@ -218,8 +216,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
           const drawWidth = 64;
           const drawHeight = 80;
           const drawX = monica.pos.x;
-          // Ajuste fino do Y: O sprite de 80px agora "pousa" 4px dentro da grama 
-          // em relação à caixa de colisão de 68px
           const drawY = monica.pos.y - (drawHeight - monica.size.y) + 4; 
 
           if (!facingRightRef.current) {
@@ -242,7 +238,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
 
     frameRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [onWin, onGameOver, onUpdateMetrics, inputRef, spritesLoaded]);
+  }, [onWin, onGameOver, onUpdateMetrics, inputRef]);
 
   return (
     <canvas 
