@@ -15,7 +15,7 @@ interface Props {
 const SPRITES = {
   WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
   JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif',
-  BACKGROUND: 'https://static.wikia.nocookie.net/monica/images/9/96/Rua_do_Limoeiro_em_%27Os_Adolescentes%27.png/revision/latest?cb=20191121033259&path-prefix=pt-br'
+  BACKGROUND: 'assets/bg.webp'
 };
 
 const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, inputRef }) => {

@@ -19,7 +19,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
   const [score, setScore] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   
-  const BG_URL = 'https://static.wikia.nocookie.net/monica/images/9/96/Rua_do_Limoeiro_em_%27Os_Adolescentes%27.png/revision/latest?cb=20191121033259&path-prefix=pt-br';
+  const BG_URL = 'assets/bg.webp';
 
   const inputRef = useRef<InputState>({
     left: false,
