@@ -15,8 +15,8 @@ interface Props {
 const SPRITES = {
   WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
   JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif',
-  BACKGROUND: 'https://i.ibb.co/3ykG4S3/bg-limoeiro.webp', // URL de backup para o fundo
-  CEBOLINHA: 'https://images.seeklogo.com/logo-png/2/2/cebolinha-logo-png_seeklogo-27755.png',
+  BACKGROUND: 'https://static.wikia.nocookie.net/monica/images/2/2e/Rua_do_Limoeiro.png/revision/latest?cb=20190123055608&path-prefix=pt-br',
+  CEBOLINHA: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQryVapFMy_mxR2Crt6OwgWd0cIxurJThAIFQ&s',
   CASCAO: 'https://upload.wikimedia.org/wikipedia/pt/3/35/Cascao.png',
   SANSAO: 'https://upload.wikimedia.org/wikipedia/pt/2/2a/Sans%C3%A3o_%28Mauricio_de_Sousa_Produ%C3%A7%C3%B5es%29.png'
 };
@@ -270,15 +270,19 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       onUpdateMetrics(Math.floor(monica.pos.x));
 
       // --- RENDERIZAÇÃO ---
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = true;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
       const bg = backgroundSpriteRef.current;
       if (bg && bg.complete && bg.naturalWidth > 0) {
-        const bgW = SETTINGS.canvasWidth;
-        const bgX = -(cameraRef.current * 0.4) % bgW;
+        // Para a imagem da Wikia, vamos ajustar a largura para preencher o canvas mantendo a proporção ou repetindo
+        const bgW = SETTINGS.canvasWidth * 1.5; // Ajuste para a imagem específica
+        const bgX = -(cameraRef.current * 0.3) % bgW;
         ctx.drawImage(bg, bgX, 0, bgW, SETTINGS.canvasHeight);
         ctx.drawImage(bg, bgX + bgW, 0, bgW, SETTINGS.canvasHeight);
+        if (bgX + bgW < SETTINGS.canvasWidth) {
+           ctx.drawImage(bg, bgX + bgW * 2, 0, bgW, SETTINGS.canvasHeight);
+        }
       } else {
         const gradient = ctx.createLinearGradient(0, 0, 0, SETTINGS.canvasHeight);
         gradient.addColorStop(0, '#87CEEB');
