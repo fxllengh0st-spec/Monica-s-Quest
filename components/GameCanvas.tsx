@@ -98,6 +98,86 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     }
   };
 
+  // Funções de desenho procedural para fallback
+  const drawProceduralMonica = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, facingRight: boolean, isJumping: boolean) => {
+    ctx.save();
+    // Vestido
+    ctx.fillStyle = COLORS.MONICA;
+    ctx.beginPath();
+    ctx.moveTo(x + 10, y + 25);
+    ctx.lineTo(x + w - 10, y + 25);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.fill();
+    // Cabeça
+    ctx.fillStyle = '#FFE0BD';
+    ctx.beginPath();
+    ctx.arc(x + w/2, y + 18, 18, 0, Math.PI * 2);
+    ctx.fill();
+    // Cabelo
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, y + 15, 20, 15, 0, Math.PI, 0);
+    ctx.fill();
+    // Olhos
+    ctx.fillStyle = 'black';
+    const eyeX = facingRight ? x + w/2 + 5 : x + w/2 - 10;
+    ctx.beginPath();
+    ctx.arc(eyeX, y + 15, 2.5, 0, Math.PI * 2);
+    ctx.arc(eyeX + 8, y + 15, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Dentinhos
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x + w/2 - 3, y + 22, 6, 4);
+    ctx.restore();
+  };
+
+  const drawProceduralEnemy = (ctx: CanvasRenderingContext2D, enemy: EnemyEntity, facingRight: boolean) => {
+    const { x, y } = { x: enemy.pos.x, y: enemy.pos.y };
+    const { x: w, y: h } = enemy.size;
+    ctx.save();
+    // Camisa
+    ctx.fillStyle = enemy.type === 'cebolinha' ? '#22C55E' : '#FACC15';
+    ctx.fillRect(x + 10, y + 25, w - 20, h - 25);
+    // Cabeça
+    ctx.fillStyle = '#FFE0BD';
+    ctx.beginPath();
+    ctx.arc(x + w/2, y + 18, 16, 0, Math.PI * 2);
+    ctx.fill();
+    // Cabelo
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    if (enemy.type === 'cebolinha') {
+      for(let i=0; i<5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + w/2, y + 5);
+        ctx.lineTo(x + w/2 - 10 + i*5, y - 5);
+        ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(x + w/2, y + 12, 16, Math.PI, 0);
+      ctx.fill();
+    }
+    ctx.restore();
+  };
+
+  const drawProceduralSansao = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    ctx.save();
+    ctx.fillStyle = '#4FACEF';
+    // Corpo
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    // Orelhas
+    ctx.beginPath();
+    ctx.ellipse(x - 5, y - 15, 4, 12, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(x + 5, y - 15, 4, 12, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -209,6 +289,27 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         const bgX = -(cameraRef.current * 0.4) % bgW;
         ctx.drawImage(bg, bgX, 0, bgW, SETTINGS.canvasHeight);
         ctx.drawImage(bg, bgX + bgW, 0, bgW, SETTINGS.canvasHeight);
+      } else {
+        // Fallback procedural background
+        const gradient = ctx.createLinearGradient(0, 0, 0, SETTINGS.canvasHeight);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#E0F7FA');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
+        
+        // Desenha nuvens simples
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        for(let i=0; i<8; i++) {
+          let cx = (i * 400 - (cameraRef.current * 0.2)) % (SETTINGS.levelLength);
+          if (cx < -200) cx += SETTINGS.levelLength;
+          if (cx < SETTINGS.canvasWidth + 200) {
+            ctx.beginPath();
+            ctx.arc(cx, 100 + (i%3)*40, 30, 0, Math.PI*2);
+            ctx.arc(cx+30, 100 + (i%3)*40, 40, 0, Math.PI*2);
+            ctx.arc(cx+60, 100 + (i%3)*40, 30, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
       }
 
       ctx.save();
@@ -232,7 +333,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         ctx.beginPath(); ctx.ellipse(c.pos.x + 16, c.pos.y + 16 + bob, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
       });
 
-      // Inimigos (Mesma lógica da Mônica)
+      // Inimigos
       enemiesRef.current.forEach(e => {
         if (e.isDead) return;
         const sprite = e.type === 'cebolinha' ? cebolinhaSpriteRef.current : cascaoSpriteRef.current;
@@ -246,6 +347,8 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
             ctx.drawImage(sprite, e.pos.x, e.pos.y, e.size.x, e.size.y);
           }
           ctx.restore();
+        } else {
+          drawProceduralEnemy(ctx, e, e.dir > 0);
         }
       });
 
@@ -261,7 +364,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         }
       });
 
-      // Final: Cebolinha + Sansão (Mesma lógica)
+      // Final: Cebolinha + Sansão
       const jiggle = Math.sin(timestamp / 150) * 5;
       const cebX = cebolinhaVitoriaPos.x;
       const cebY = cebolinhaVitoriaPos.y + jiggle;
@@ -269,18 +372,24 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       const vitoriaSprite = cebolinhaSpriteRef.current;
       if (vitoriaSprite && vitoriaSprite.complete && vitoriaSprite.naturalWidth > 0) {
           ctx.drawImage(vitoriaSprite, cebX, cebY, 64, 80);
+      } else {
+          drawProceduralEnemy(ctx, { pos: { x: cebX, y: cebY }, size: { x: 64, y: 80 }, type: 'cebolinha' } as any, false);
       }
+      
       const s = sansaoSpriteRef.current;
       if (s && s.complete && s.naturalWidth > 0) {
           ctx.drawImage(s, cebX + 35, cebY + 20, 50, 60);
+      } else {
+          drawProceduralSansao(ctx, cebX + 45, cebY + 40);
       }
 
       // Mônica
       const currentSprite = !isGroundedRef.current ? jumpSpriteRef.current : walkSpriteRef.current;
+      const dW = 64, dH = 80;
+      const dX = monica.pos.x, dY = monica.pos.y - (dH - monica.size.y) + 4; 
+      
       if (currentSprite && currentSprite.complete && currentSprite.naturalWidth > 0) {
         ctx.save();
-        const dW = 64, dH = 80;
-        const dX = monica.pos.x, dY = monica.pos.y - (dH - monica.size.y) + 4; 
         if (!facingRightRef.current) {
           ctx.translate(dX + dW, dY);
           ctx.scale(-1, 1);
@@ -289,6 +398,8 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
           ctx.drawImage(currentSprite, dX, dY, dW, dH);
         }
         ctx.restore();
+      } else {
+        drawProceduralMonica(ctx, dX, dY, dW, dH, facingRightRef.current, !isGroundedRef.current);
       }
 
       ctx.restore();
