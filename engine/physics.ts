@@ -14,12 +14,11 @@ export const resolveCollisions = (entity: Entity, platforms: Platform[]) => {
   let grounded = false;
 
   for (const plat of platforms) {
-    // Check for overlap
+    // Aumentar levemente a margem de colisão para evitar "tunnelling"
     const overlapX = Math.min(entity.pos.x + entity.size.x, plat.x + plat.w) - Math.max(entity.pos.x, plat.x);
     const overlapY = Math.min(entity.pos.y + entity.size.y, plat.y + plat.h) - Math.max(entity.pos.y, plat.y);
 
     if (overlapX > 0 && overlapY > 0) {
-      // Resolve on the axis with the smallest overlap
       if (overlapX < overlapY) {
         if (entity.pos.x + entity.size.x / 2 < plat.x + plat.w / 2) {
           entity.pos.x -= overlapX;
@@ -29,10 +28,14 @@ export const resolveCollisions = (entity: Entity, platforms: Platform[]) => {
         entity.vel.x = 0;
       } else {
         if (entity.pos.y + entity.size.y / 2 < plat.y + plat.h / 2) {
-          entity.pos.y -= overlapY;
-          entity.vel.y = 0;
-          grounded = true;
+          // Top collision (landing)
+          if (entity.vel.y >= 0) {
+            entity.pos.y -= overlapY;
+            entity.vel.y = 0;
+            grounded = true;
+          }
         } else {
+          // Bottom collision (head hit)
           entity.pos.y += overlapY;
           entity.vel.y = 0;
         }

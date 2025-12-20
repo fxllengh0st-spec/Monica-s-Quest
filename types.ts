@@ -6,7 +6,7 @@ export enum GameState {
   GAME_OVER = 'GAME_OVER'
 }
 
-export type GameMode = 'MENU' | 'MARATHON' | 'ADVENTURE';
+export type GameMode = 'MENU' | 'MARATHON';
 
 export interface Vector2D {
   x: number;
@@ -18,6 +18,12 @@ export interface Entity {
   size: Vector2D;
   vel: Vector2D;
   color: string;
+}
+
+export interface Particle extends Entity {
+  life: number;
+  maxLife: number;
+  opacity: number;
 }
 
 export interface Platform {

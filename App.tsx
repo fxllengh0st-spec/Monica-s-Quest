@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { GameMode } from './types';
 import MainMenu from './components/MainMenu';
 import MarathonGame from './components/MarathonGame';
-import AdventureGame from './components/AdventureGame';
 
 const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<GameMode>('MENU');
@@ -16,10 +15,6 @@ const App: React.FC = () => {
       
       {currentMode === 'MARATHON' && (
         <MarathonGame onExit={() => setCurrentMode('MENU')} />
-      )}
-
-      {currentMode === 'ADVENTURE' && (
-        <AdventureGame onExit={() => setCurrentMode('MENU')} />
       )}
     </>
   );
