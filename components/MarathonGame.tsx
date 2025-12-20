@@ -18,6 +18,8 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
   const [distance, setDistance] = useState(0);
   const [score, setScore] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  
+  const BG_URL = 'https://static.wikia.nocookie.net/monica/images/9/96/Rua_do_Limoeiro_em_%27Os_Adolescentes%27.png/revision/latest?cb=20191121033259&path-prefix=pt-br';
 
   const inputRef = useRef<InputState>({
     left: false,
@@ -51,20 +53,18 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
   }, []);
 
   return (
-    <div className="relative w-full h-screen bg-sky-300 overflow-hidden flex flex-col items-center justify-center select-none touch-none">
-      {/* Background Decor */}
-      <div className="absolute top-10 left-10 opacity-20 pointer-events-none">
-        <Rabbit size={isMobile ? 60 : 120} className="text-white" />
-      </div>
-      <div className="absolute bottom-10 right-10 opacity-20 pointer-events-none">
-        <Trophy size={isMobile ? 60 : 120} className="text-white" />
-      </div>
+    <div 
+      className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center select-none touch-none bg-cover bg-center"
+      style={{ backgroundImage: `url(${BG_URL})` }}
+    >
+      {/* Overlay para legibilidade e profundidade */}
+      <div className="absolute inset-0 bg-blue-900/10 pointer-events-none"></div>
 
-      <button onClick={onExit} className="absolute top-4 left-4 z-50 bg-white/20 p-2 rounded-full hover:bg-white/40 text-white backdrop-blur-sm">
+      <button onClick={onExit} className="absolute top-4 left-4 z-50 bg-black/40 p-2 rounded-full hover:bg-black/60 text-white backdrop-blur-sm">
         <ArrowLeft size={24} />
       </button>
 
-      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/50 bg-sky-200 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
+      <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/30 bg-black/20 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
         {gameState === GameState.START && (
           <StartScreen onStart={startGame} />
         )}
@@ -92,7 +92,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
       </div>
 
       {!isMobile && (
-        <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
+        <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
           <span className="flex items-center gap-1"><Info size={16} /> Use <b>Arrows</b> to Move & <b>Space</b> to Jump. Catch Sansão!</span>
         </div>
       )}

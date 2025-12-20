@@ -14,13 +14,15 @@ interface Props {
 
 const SPRITES = {
   WALK: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-35bdf08a-22ef-4bd3-b27d-9c564b398d55.gif',
-  JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif'
+  JUMP: 'https://c-p.rmcdn1.net/66904fdd8972c60017bb3017/4986599/Image-d6a589c6-0900-44c0-b112-74e7cc768bf7.gif',
+  BACKGROUND: 'https://static.wikia.nocookie.net/monica/images/9/96/Rua_do_Limoeiro_em_%27Os_Adolescentes%27.png/revision/latest?cb=20191121033259&path-prefix=pt-br'
 };
 
 const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, inputRef }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const walkSpriteRef = useRef<HTMLImageElement | null>(null);
   const jumpSpriteRef = useRef<HTMLImageElement | null>(null);
+  const backgroundSpriteRef = useRef<HTMLImageElement | null>(null);
   const spritesLoadedRef = useRef<boolean>(false);
   const soundManager = useRef<SoundManager | null>(null);
   const particlesRef = useRef<Particle[]>([]);
@@ -45,7 +47,7 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     soundManager.current = new SoundManager();
     
     let loadedCount = 0;
-    const totalSprites = 2;
+    const totalSprites = 3;
     const onImageLoad = () => {
       loadedCount++;
       if (loadedCount === totalSprites) spritesLoadedRef.current = true;
@@ -60,6 +62,11 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
     jumpImg.src = SPRITES.JUMP;
     jumpImg.onload = onImageLoad;
     jumpSpriteRef.current = jumpImg;
+
+    const bgImg = new Image();
+    bgImg.src = SPRITES.BACKGROUND;
+    bgImg.onload = onImageLoad;
+    backgroundSpriteRef.current = bgImg;
   }, []);
 
   const createParticles = (x: number, y: number, color: string, count: number) => {
@@ -154,16 +161,13 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       
-      // Sky
-      ctx.fillStyle = COLORS.SKY;
-      ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
-
-      // Background Parallax
-      ctx.fillStyle = '#6ab8d6';
-      for (let i = 0; i < 20; i++) {
-        const bx = (i * 400 - cameraRef.current * 0.1) % 1200;
-        ctx.fillRect(bx, 150, 80, 250);
-        ctx.fillRect(bx + 120, 180, 60, 220);
+      // Imagem de Fundo (Static)
+      if (backgroundSpriteRef.current && backgroundSpriteRef.current.complete) {
+        ctx.drawImage(backgroundSpriteRef.current, 0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
+      } else {
+        // Fallback Sky
+        ctx.fillStyle = COLORS.SKY;
+        ctx.fillRect(0, 0, SETTINGS.canvasWidth, SETTINGS.canvasHeight);
       }
 
       ctx.save();
@@ -175,12 +179,6 @@ const GameCanvas: React.FC<Props> = ({ onWin, onGameOver, onUpdateMetrics, input
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = COLORS.GRASS;
         ctx.fillRect(p.x, p.y, p.w, 8);
-        
-        if (p.type === 'ground') {
-            const borderY = p.y + p.h - 32;
-            ctx.fillStyle = COLORS.BORDER_BLUE;
-            ctx.fillRect(p.x, borderY, p.w, 32);
-        }
       }
 
       // Partículas
