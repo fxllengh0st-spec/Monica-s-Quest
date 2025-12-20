@@ -7,7 +7,7 @@ import WinScreen from './WinScreen';
 import GameOverScreen from './GameOverScreen';
 import HUD from './HUD';
 import MobileControls from './MobileControls';
-import { Trophy, Rabbit, Info, ArrowLeft } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface Props {
   onExit: () => void;
@@ -57,7 +57,6 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
         case 'Space':
         case 'KeyW':
           inputRef.current.jump = true;
-          // Previne scroll da página com espaço/setas
           if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
           break;
       }
@@ -94,7 +93,6 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
     setGameState(GameState.PLAYING);
     setScore(0);
     setDistance(0);
-    // Reseta inputs ao iniciar para evitar estados travados
     inputRef.current = { left: false, right: false, jump: false };
   }, []);
 
@@ -115,12 +113,7 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
         backgroundPosition: 'center'
       }}
     >
-      {/* Botão Sair */}
-      <button onClick={onExit} className="absolute top-4 left-4 z-50 bg-black/40 p-2 rounded-full hover:bg-black/60 text-white backdrop-blur-sm transition-colors">
-        <ArrowLeft size={24} />
-      </button>
-
-      {/* Container Principal do Jogo */}
+      {/* Container Principal do Jogo - O botão de voltar foi removido daqui */}
       <div className={`relative z-10 w-full max-w-[1024px] shadow-2xl md:rounded-xl overflow-hidden md:border-8 border-white/50 bg-sky-200 ${isMobile ? 'h-full flex flex-col' : 'aspect-[16/9]'}`}>
         
         {gameState === GameState.START && (
@@ -151,7 +144,6 @@ const MarathonGame: React.FC<Props> = ({ onExit }) => {
         )}
       </div>
 
-      {/* Dicas de Controle */}
       {!isMobile && (
         <div className="mt-4 text-white text-sm flex items-center gap-2 bg-black/60 px-4 py-2 rounded-full backdrop-blur-sm">
           <span className="flex items-center gap-1">

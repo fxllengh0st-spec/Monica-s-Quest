@@ -44,8 +44,10 @@ export interface GameSettings {
   gravity: number;
   jumpForce: number;
   moveSpeed: number;
+  acceleration: number;
   friction: number;
   canvasWidth: number;
   canvasHeight: number;
   levelLength: number;
+  maxFallSpeed: number;
 }

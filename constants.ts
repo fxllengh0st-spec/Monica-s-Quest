@@ -2,13 +2,15 @@
 import { GameSettings, Platform } from './types';
 
 export const SETTINGS: GameSettings = {
-  gravity: 4.5,
-  jumpForce: -40,
-  moveSpeed: 12,
-  friction: 0.1,
+  gravity: 1.2,           // Gravidade mais leve para o "feel" de SNES
+  jumpForce: -24,         // Força de pulo ajustada
+  moveSpeed: 9,           // Velocidade máxima horizontal
+  acceleration: 0.8,      // Quão rápido ela ganha velocidade
+  friction: 0.88,         // Deslize (atrito no chão)
   canvasWidth: 1024,
-  canvasHeight: 512, // Adjusted for SNES 2:1-ish feel
+  canvasHeight: 512,
   levelLength: 6000,
+  maxFallSpeed: 16,       // Limite de velocidade de queda
 };
 
 export const COLORS = {
@@ -24,13 +26,11 @@ export const COLORS = {
 };
 
 export const LEVEL_PLATFORMS: Platform[] = [
-  // Continuous ground for the main path
   { x: 0, y: 400, w: 1000, h: 112, type: 'ground' },
   { x: 1150, y: 400, w: 1200, h: 112, type: 'ground' },
   { x: 2500, y: 400, w: 1500, h: 112, type: 'ground' },
   { x: 4200, y: 400, w: 2000, h: 112, type: 'ground' },
   
-  // Floating platforms (SNES style)
   { x: 400, y: 280, w: 150, h: 20, type: 'platform' },
   { x: 700, y: 220, w: 150, h: 20, type: 'platform' },
   { x: 1500, y: 280, w: 200, h: 20, type: 'platform' },
